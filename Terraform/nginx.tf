@@ -83,6 +83,14 @@ resource "aws_instance" "ec2fornginx" {
 #!/bin/bash
 sudo apt-get update
 sudo apt-get install -y nginx
+
+
+CLUSTER_NAME="${aws_ecs_cluster.strapiecscluster.name}"
+    SERVICE_NAME="${aws_ecs_service.ecs_service_strapi.name}"
+    TASK_ARN=$(aws ecs list-tasks --cluster $CLUSTER_NAME --service-name $SERVICE_NAME --query 'taskArns[0]' --output text --region ${var.aws_region})
+    ENI_ID=$(aws ecs describe-tasks --cluster $CLUSTER_NAME --tasks $TASK_ARN --query 'tasks[0].attachments[0].details[?name==`networkInterfaceId`].value' --output text --region ${var.aws_region})
+    PUBLIC_IP=$(aws ec2 describe-network-interfaces --network-interface-ids $ENI_ID --query 'NetworkInterfaces[0].Association.PublicIp' --output text --region ${var.aws_region})
+
 cat <<EOT > /etc/nginx/sites-available/strapi
 server {
     listen 80;
